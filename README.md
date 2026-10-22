@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mulkymalikuldhaher/repopilot/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mulkymalikuldhaher/repopilot/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI%20Status" alt="CI Status" /></a>
-  <a href="https://github.com/mulkymalikuldhaher/repopilot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mulkymalikuldhaher/repopilot?style=for-the-badge&color=blue" alt="License" /></a>
+  <a href="https://github.com/mulkymalikuldhrs/RepoPilot/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mulkymalikuldhrs/RepoPilot/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI%20Status" alt="CI Status" /></a>
+  <a href="https://github.com/mulkymalikuldhrs/RepoPilot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mulkymalikuldhrs/RepoPilot?style=for-the-badge&color=blue" alt="License" /></a>
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-7.3-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
@@ -73,7 +73,7 @@ Requirements: **Node.js 20+** and **npm**.
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/mulkymalikuldhaher/repopilot.git
+   git clone https://github.com/mulkymalikuldhrs/RepoPilot.git
    cd repopilot
    ```
 
@@ -192,8 +192,8 @@ Project changes are synchronized with [`CHANGELOG.md`](./CHANGELOG.md).
 
 Contributions are welcome! Please feel free to submit a Pull Request or open an Issue.
 
-<a href="https://github.com/mulkymalikuldhaher/repopilot/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=mulkymalikuldhaher/repopilot" alt="Contributors" />
+<a href="https://github.com/mulkymalikuldhrs/RepoPilot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=mulkymalikuldhrs/RepoPilot" alt="Contributors" />
 </a>
 
 ---
@@ -203,8 +203,7 @@ Contributions are welcome! Please feel free to submit a Pull Request or open an 
 **Mulky Malikul Dhaher**
 
 - **GitHub:** [mulkymalikuldhaher](https://github.com/mulkymalikuldhaher)
-- **Repository:** [https://github.com/mulkymalikuldhaher/repopilot](https://github.com/mulkymalikuldhaher/repopilot)
+- **Repository:** [https://github.com/mulkymalikuldhrs/RepoPilot](https://github.com/mulkymalikuldhrs/RepoPilot)
 - **Email:** [mulkymalikuldhaher@email.com](mailto:mulkymalikuldhaher@email.com)
 
 ---
-
