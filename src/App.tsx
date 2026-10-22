@@ -1,164 +1,215 @@
-import { useEffect, useState } from 'react';
-import { Icon } from './components/Icon';
-import { RepositoryDialog } from './components/RepositoryDialog';
+import { useState, useEffect } from 'react';
 import { Sidebar, type PageId } from './components/Sidebar';
-import { addRepository, emptyWorkspace } from './domain/workspace';
-import type { RepositoryConfig, RepairPolicy, SyncPolicy, WorkspaceConfig } from './domain/types';
-import { loadWorkspace, saveWorkspace } from './storage/local-store';
+import { Overview } from './pages/Overview';
+import { Repositories } from './pages/Repositories';
+import { BatchOperations } from './pages/BatchOperations';
+import { ReadmeConsistency } from './pages/ReadmeConsistency';
+import { SyncPolicies } from './pages/SyncPolicies';
+import { RepairPolicies } from './pages/RepairPolicies';
 import { Agents } from './pages/Agents';
 import { ExecutionHistory } from './pages/ExecutionHistory';
-import { Overview } from './pages/Overview';
-import { RepairPolicies } from './pages/RepairPolicies';
-import { Repositories } from './pages/Repositories';
 import { Settings } from './pages/Settings';
-import { SyncPolicies } from './pages/SyncPolicies';
+import { RepositoryDialog } from './components/RepositoryDialog';
+import { loadWorkspaceFromLocalDB, saveWorkspaceToLocalDB } from './storage/local-db';
+import type {
+  RepositoryConfig,
+  SyncPolicy,
+  ProviderCredential,
+  ReadmeConsistencyPolicy,
+  WorkspaceConfig,
+} from './domain/types';
 
-const pageTitles: Record<PageId, string> = {
-  overview: 'Overview',
-  repositories: 'Repositories',
-  sync: 'Sync policies',
-  repairs: 'Repair policies',
-  agents: 'Agents',
-  runs: 'Execution history',
-  settings: 'Settings',
-};
-
-export default function App() {
-  const [workspace, setWorkspace] = useState<WorkspaceConfig>(() => loadWorkspace());
-  const [page, setPage] = useState<PageId>('overview');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [notice, setNotice] = useState('');
+export function App() {
+  const [activePage, setActivePage] = useState<PageId>('overview');
+  const [workspace, setWorkspace] = useState<WorkspaceConfig>(() => ({
+    repositories: [],
+    syncPolicies: {},
+    repairPolicy: {
+      checks: {
+        buildAndTests: true,
+        lintAndTypes: true,
+        dependencyMaintenance: false,
+        documentation: false,
+      },
+      createPullRequest: true,
+      autoMerge: false,
+      approvalRequired: true,
+    },
+    credentials: [],
+    readmePolicy: {
+      enabled: true,
+      requiredSections: [
+        'Architecture & Visual Workflow',
+        'Tutorial & Usage Guide',
+        'Deployment Tutorial',
+        'Author & Contact',
+      ],
+      autoAddMissing: false,
+      contactEmail: 'mulkymalikuldhaher@email.com',
+    },
+  }));
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   useEffect(() => {
-    saveWorkspace(workspace);
-  }, [workspace]);
-
-  useEffect(() => {
-    function handleShortcut(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setDialogOpen(true);
+    loadWorkspaceFromLocalDB().then((loaded) => {
+      if (loaded && Array.isArray(loaded.repositories)) {
+        setWorkspace((prev) => ({ ...prev, ...loaded }));
       }
-      if (event.key === 'Escape') {
-        setDialogOpen(false);
-        setMobileNavOpen(false);
-      }
-    }
-    window.addEventListener('keydown', handleShortcut);
-    return () => window.removeEventListener('keydown', handleShortcut);
+    });
   }, []);
 
-  function saveRepository(repository: RepositoryConfig): boolean {
-    if (workspace.repositories.some((entry) => entry.remoteUrl === repository.remoteUrl))
-      return false;
-    setWorkspace((current) => addRepository(current, repository));
-    setDialogOpen(false);
-    setNotice('Saved locally. This remote is still unverified.');
+  function handleSaveWorkspace(next: WorkspaceConfig) {
+    setWorkspace(next);
+    saveWorkspaceToLocalDB(next);
+  }
+
+  function handleAddRepository(repo: RepositoryConfig): boolean {
+    const exists = workspace.repositories.some((r) => r.remoteUrl === repo.remoteUrl);
+    if (exists) return false;
+
+    handleSaveWorkspace({
+      ...workspace,
+      repositories: [...workspace.repositories, repo],
+    });
+    setIsAddOpen(false);
     return true;
   }
 
-  function updateSyncPolicy(repositoryId: string, policy: SyncPolicy) {
-    setWorkspace((current) => ({
-      ...current,
-      syncPolicies: { ...current.syncPolicies, [repositoryId]: policy },
-    }));
+  function handleRenameRepository(id: string, newName: string) {
+    handleSaveWorkspace({
+      ...workspace,
+      repositories: workspace.repositories.map((r) => (r.id === id ? { ...r, name: newName } : r)),
+    });
   }
 
-  function updateRepairPolicy(policy: RepairPolicy) {
-    setWorkspace((current) => ({ ...current, repairPolicy: policy }));
+  function handleBatchRenameRepositories(renames: { id: string; newName: string }[]) {
+    const map = new Map(renames.map((r) => [r.id, r.newName]));
+    handleSaveWorkspace({
+      ...workspace,
+      repositories: workspace.repositories.map((r) =>
+        map.has(r.id) ? { ...r, name: map.get(r.id)! } : r,
+      ),
+    });
   }
 
-  function navigate(nextPage: PageId) {
-    setPage(nextPage);
-    setNotice('');
+  function handleArchiveRepository(id: string, archived: boolean) {
+    handleSaveWorkspace({
+      ...workspace,
+      repositories: workspace.repositories.map((r) => (r.id === id ? { ...r, archived } : r)),
+    });
+  }
+
+  function handleRemoveRepository(id: string) {
+    handleSaveWorkspace({
+      ...workspace,
+      repositories: workspace.repositories.filter((r) => r.id !== id),
+    });
+  }
+
+  function handleUpdateSyncPolicy(repositoryId: string, policy: SyncPolicy) {
+    handleSaveWorkspace({
+      ...workspace,
+      syncPolicies: {
+        ...workspace.syncPolicies,
+        [repositoryId]: policy,
+      },
+    });
+  }
+
+  function handleSaveCredential(credential: ProviderCredential) {
+    const existing = workspace.credentials || [];
+    const filtered = existing.filter((c) => c.account !== credential.account);
+    handleSaveWorkspace({
+      ...workspace,
+      credentials: [...filtered, credential],
+    });
+  }
+
+  function handleUpdateReadmePolicy(policy: ReadmeConsistencyPolicy) {
+    handleSaveWorkspace({
+      ...workspace,
+      readmePolicy: policy,
+    });
+  }
+
+  function handleResetWorkspace() {
+    const reset: WorkspaceConfig = {
+      repositories: [],
+      syncPolicies: {},
+      repairPolicy: workspace.repairPolicy,
+      credentials: [],
+      readmePolicy: workspace.readmePolicy,
+    };
+    handleSaveWorkspace(reset);
   }
 
   return (
     <div className="app-shell">
       <Sidebar
-        page={page}
-        onNavigate={navigate}
-        onAddRepository={() => setDialogOpen(true)}
-        open={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
+        activePage={activePage}
+        onNavigate={setActivePage}
+        repositoryCount={workspace.repositories.length}
       />
-      <div className="app-main">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              aria-label="Open navigation"
-              className="icon-button mobile-menu-button"
-              onClick={() => setMobileNavOpen(true)}
-              type="button"
-            >
-              <Icon name="menu" />
-            </button>
-            <div className="breadcrumb">
-              <span>Personal workspace</span>
-              <Icon name="chevron" size={14} />
-              <strong>{pageTitles[page]}</strong>
-            </div>
-          </div>
-          <div className="topbar-right">
-            <span className="topbar-environment">
-              <span /> LOCAL-ONLY
-            </span>
-            <button
-              className="topbar-add"
-              onClick={() => setDialogOpen(true)}
-              type="button"
-              aria-label="Add repository"
-            >
-              <Icon name="plus" size={16} />
-              <span>Add remote</span>
-            </button>
-          </div>
-        </header>
-        <main className="main-content">
-          {notice && (
-            <div className="notice-bar" role="status">
-              <Icon name="check" size={16} />
-              <span>{notice}</span>
-              <button aria-label="Dismiss notice" onClick={() => setNotice('')} type="button">
-                <Icon name="close" size={14} />
-              </button>
-            </div>
-          )}
-          {page === 'overview' && (
-            <Overview
-              repositories={workspace.repositories}
-              onAddRepository={() => setDialogOpen(true)}
-              onNavigate={navigate}
-            />
-          )}
-          {page === 'repositories' && (
-            <Repositories
-              repositories={workspace.repositories}
-              onAddRepository={() => setDialogOpen(true)}
-            />
-          )}
-          {page === 'sync' && (
-            <SyncPolicies
-              repositories={workspace.repositories}
-              policies={workspace.syncPolicies}
-              onAddRepository={() => setDialogOpen(true)}
-              onUpdate={updateSyncPolicy}
-            />
-          )}
-          {page === 'repairs' && (
-            <RepairPolicies policy={workspace.repairPolicy} onUpdate={updateRepairPolicy} />
-          )}
-          {page === 'agents' && <Agents />}
-          {page === 'runs' && <ExecutionHistory onNavigate={navigate} />}
-          {page === 'settings' && (
-            <Settings workspace={workspace} onReset={() => setWorkspace(emptyWorkspace())} />
-          )}
-        </main>
-      </div>
-      {dialogOpen && (
-        <RepositoryDialog onClose={() => setDialogOpen(false)} onSave={saveRepository} />
+      <main className="main-content">
+        {activePage === 'overview' && (
+          <Overview
+            repositories={workspace.repositories}
+            onAddRepository={() => setIsAddOpen(true)}
+            onNavigate={setActivePage}
+          />
+        )}
+        {activePage === 'repositories' && (
+          <Repositories
+            repositories={workspace.repositories}
+            onAddRepository={() => setIsAddOpen(true)}
+            onRenameRepository={handleRenameRepository}
+            onArchiveRepository={handleArchiveRepository}
+            onRemoveRepository={handleRemoveRepository}
+          />
+        )}
+        {activePage === 'batch-operations' && (
+          <BatchOperations
+            repositories={workspace.repositories}
+            onRenameRepositories={handleBatchRenameRepositories}
+          />
+        )}
+        {activePage === 'readme-consistency' && (
+          <ReadmeConsistency
+            repositories={workspace.repositories}
+            policy={workspace.readmePolicy}
+            onUpdatePolicy={handleUpdateReadmePolicy}
+          />
+        )}
+        {activePage === 'sync-policies' && (
+          <SyncPolicies
+            repositories={workspace.repositories}
+            policies={workspace.syncPolicies}
+            onAddRepository={() => setIsAddOpen(true)}
+            onUpdate={handleUpdateSyncPolicy}
+          />
+        )}
+        {activePage === 'repair-policies' && (
+          <RepairPolicies
+            policy={workspace.repairPolicy}
+            onUpdate={(repairPolicy) => handleSaveWorkspace({ ...workspace, repairPolicy })}
+          />
+        )}
+        {activePage === 'agents' && <Agents onNavigate={setActivePage} />}
+        {activePage === 'execution-history' && <ExecutionHistory onNavigate={setActivePage} />}
+        {activePage === 'settings' && (
+          <Settings
+            workspace={workspace}
+            onReset={handleResetWorkspace}
+            onSaveCredential={handleSaveCredential}
+          />
+        )}
+      </main>
+
+      {isAddOpen && (
+        <RepositoryDialog onClose={() => setIsAddOpen(false)} onSave={handleAddRepository} />
       )}
     </div>
   );
 }
+
+export default App;

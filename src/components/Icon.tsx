@@ -22,6 +22,7 @@ export type IconName =
   | 'gitlab'
   | 'codeberg'
   | 'git'
+  | 'brand'
   | 'chevron';
 
 const paths: Record<IconName, ReactNode> = {
@@ -114,6 +115,12 @@ const paths: Record<IconName, ReactNode> = {
   ),
   codeberg: <path d="M12 3a9 9 0 1 0 8.7 11.3H12L9.6 9.7A6 6 0 1 1 12 21" />,
   git: <path d="m12 3 9 9-9 9-9-9 9-9zM7.5 7.5l9 9M9 12h3v4" />,
+  brand: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m12 15 3-6-6 3 3 3z" />
+    </>
+  ),
   chevron: <path d="m9 18 6-6-6-6" />,
 };
 

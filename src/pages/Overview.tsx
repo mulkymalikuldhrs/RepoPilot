@@ -2,13 +2,15 @@ import { Icon } from '../components/Icon';
 import type { RepositoryConfig } from '../domain/types';
 import type { PageId } from '../components/Sidebar';
 
-interface OverviewProps {
+export function Overview({
+  repositories,
+  onAddRepository,
+  onNavigate,
+}: {
   repositories: RepositoryConfig[];
   onAddRepository: () => void;
   onNavigate: (page: PageId) => void;
-}
-
-export function Overview({ repositories, onAddRepository, onNavigate }: OverviewProps) {
+}) {
   const repositoryCount = repositories.length;
 
   return (
@@ -127,7 +129,11 @@ export function Overview({ repositories, onAddRepository, onNavigate }: Overview
               <div className="eyebrow">WORKFLOW ACTIVITY</div>
               <h2>Execution history</h2>
             </div>
-            <button className="text-button" onClick={() => onNavigate('runs')} type="button">
+            <button
+              className="text-button"
+              onClick={() => onNavigate('execution-history')}
+              type="button"
+            >
               View history <Icon name="arrow" size={15} />
             </button>
           </div>
@@ -191,7 +197,7 @@ export function Overview({ repositories, onAddRepository, onNavigate }: Overview
             title="Review sync policy"
             detail="Dry-run and approval are the defaults"
             state="locked"
-            onClick={() => onNavigate('sync')}
+            onClick={() => onNavigate('sync-policies')}
           />
           <SetupStep
             number="03"

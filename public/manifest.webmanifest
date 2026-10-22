@@ -1,0 +1,22 @@
+{
+  "short_name": "RepoPilot",
+  "name": "RepoPilot - Git Synchronization & Automated Repair Plane",
+  "description": "Control plane for user-owned Git repository synchronization and automated code repair workflows.",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#1e293b",
+  "display": "standalone",
+  "orientation": "any"
+}

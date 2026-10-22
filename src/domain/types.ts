@@ -12,7 +12,8 @@ export interface RepositoryConfig {
   remoteUrl: string;
   defaultBranch: string;
   createdAt: string;
-  verification: 'unverified';
+  verification: 'unverified' | 'verified';
+  archived?: boolean;
 }
 
 export interface SyncPolicy {
@@ -39,8 +40,63 @@ export interface RepairPolicy {
   approvalRequired: true;
 }
 
+export interface ProviderCredential {
+  provider: ProviderId;
+  account: string;
+  authType: 'pat' | 'oauth_token' | 'api_key';
+  maskedToken: string;
+  rawToken?: string;
+  updatedAt: string;
+}
+
+export interface BranchMergeRequest {
+  repositoryId: string;
+  sourceBranch: string;
+  targetBranch: string;
+  strategy: 'fast-forward' | 'squash' | 'merge-commit';
+  autoDeleteSource?: boolean;
+}
+
+export interface PullMergeRequest {
+  repositoryId: string;
+  remoteBranch: string;
+  localBranch: string;
+  dryRun: boolean;
+}
+
+export interface BatchRenameRule {
+  targetRepositoryIds: string[];
+  pattern: string;
+  replacement: string;
+  prefix?: string;
+  suffix?: string;
+}
+
+export interface BatchSyncRequest {
+  repositoryIds: string[];
+  direction: SyncDirection;
+  dryRun: boolean;
+}
+
+export interface BatchCiDispatch {
+  repositoryIds: string[];
+  workflowFile: string;
+  ref: string;
+  inputs?: Record<string, string>;
+}
+
+export interface ReadmeConsistencyPolicy {
+  enabled: boolean;
+  requiredSections: string[];
+  autoAddMissing: boolean;
+  standardBannerUrl?: string;
+  contactEmail?: string;
+}
+
 export interface WorkspaceConfig {
   repositories: RepositoryConfig[];
   syncPolicies: Record<string, SyncPolicy>;
   repairPolicy: RepairPolicy;
+  credentials?: ProviderCredential[];
+  readmePolicy?: ReadmeConsistencyPolicy;
 }

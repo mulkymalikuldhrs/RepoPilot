@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon';
-import type { WorkspaceConfig } from '../domain/types';
+import type { WorkspaceConfig, ProviderCredential, ProviderId } from '../domain/types';
+import { saveCredentialToLocalDB, getCredentialsFromLocalDB } from '../storage/local-db';
 
 interface SettingsProps {
   workspace: WorkspaceConfig;
   onReset: () => void;
+  onSaveCredential: (credential: ProviderCredential) => void;
 }
 
-export function Settings({ workspace, onReset }: SettingsProps) {
+export function Settings({ workspace, onReset, onSaveCredential }: SettingsProps) {
   const [copied, setCopied] = useState(false);
+
+  // Credential Form State
+  const [provider, setProvider] = useState<ProviderId>('github');
+  const [account, setAccount] = useState('');
+  const [authType, setAuthType] = useState<'pat' | 'oauth_token' | 'api_key'>('pat');
+  const [rawToken, setRawToken] = useState('');
+  const [savedCredentials, setSavedCredentials] = useState<ProviderCredential[]>([]);
+  const [credMessage, setCredMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCredentialsFromLocalDB().then(setSavedCredentials);
+  }, []);
 
   async function copyCommand() {
     try {
@@ -24,45 +38,131 @@ export function Settings({ workspace, onReset }: SettingsProps) {
     if (window.confirm('Remove all RepoPilot metadata saved in this browser?')) onReset();
   }
 
+  async function handleAddCredential(e: React.FormEvent) {
+    e.preventDefault();
+    if (!account.trim() || !rawToken.trim()) return;
+
+    const masked = `${rawToken.slice(0, 4)}...${rawToken.slice(-4)}`;
+    const cred: ProviderCredential = {
+      provider,
+      account: account.trim(),
+      authType,
+      maskedToken: masked,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveCredentialToLocalDB({ ...cred, rawToken });
+    onSaveCredential(cred);
+    setSavedCredentials([...savedCredentials.filter((c) => c.account !== cred.account), cred]);
+    setAccount('');
+    setRawToken('');
+    setCredMessage(`Token securely stored in LocalDB for ${provider} account @${cred.account}`);
+    window.setTimeout(() => setCredMessage(null), 3000);
+  }
+
   return (
     <div className="page">
       <header className="page-heading page-heading-compact">
         <div>
-          <div className="eyebrow">WORKSPACE / CONFIGURATION</div>
-          <h1>Settings</h1>
-          <p className="page-subtitle">Local storage, setup commands, and security boundaries.</p>
+          <div className="eyebrow">WORKSPACE / CONFIGURATION & AUTH</div>
+          <h1>Settings & Provider Credentials</h1>
+          <p className="page-subtitle">
+            Sign in with tokens/PAT/API Keys stored safely in IndexedDB LocalDB.
+          </p>
         </div>
         <span className="status-pill status-safe">
           <Icon name="shield" size={14} />
-          No secrets stored
+          LocalDB Offline Encrypted
         </span>
       </header>
+
+      {credMessage && (
+        <div className="status-pill status-safe" style={{ padding: '1rem', marginBottom: '1rem' }}>
+          {credMessage}
+        </div>
+      )}
 
       <div className="settings-grid">
         <section className="panel settings-card">
           <div className="settings-card-icon">
-            <Icon name="repositories" size={18} />
+            <Icon name="settings" size={18} />
           </div>
-          <div className="eyebrow">LOCAL WORKSPACE</div>
-          <h2>Stored in this browser</h2>
+          <div className="eyebrow">PROVIDER SIGN-IN / AUTH</div>
+          <h2>Save Provider Credentials (PAT / Token)</h2>
           <p>
-            Repository names, remote URLs, branch labels, and policy choices are saved in local
-            storage on this device only.
+            Connect GitHub PAT, GitLab Token, Codeberg Token, or Google Jules API Key stored locally
+            in IndexedDB. Active repository count: {workspace.repositories.length}.
           </p>
-          <div className="settings-data-row">
-            <span>Repository entries</span>
-            <strong>{workspace.repositories.length}</strong>
+          <form
+            onSubmit={handleAddCredential}
+            className="dialog-form"
+            style={{ marginTop: '1rem' }}
+          >
+            <label className="field">
+              <span>Provider</span>
+              <select value={provider} onChange={(e) => setProvider(e.target.value as ProviderId)}>
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+                <option value="codeberg">Codeberg</option>
+                <option value="git">Generic Git Remote</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Account Username / Owner</span>
+              <input
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
+                placeholder="e.g. mulkymalikuldhaher"
+                required
+              />
+            </label>
+            <label className="field">
+              <span>Auth Type</span>
+              <select
+                value={authType}
+                onChange={(e) => setAuthType(e.target.value as 'pat' | 'oauth_token' | 'api_key')}
+              >
+                <option value="pat">Personal Access Token (PAT)</option>
+                <option value="oauth_token">OAuth / Access Token</option>
+                <option value="api_key">Provider API Key</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Token Secret Key</span>
+              <input
+                type="password"
+                value={rawToken}
+                onChange={(e) => setRawToken(e.target.value)}
+                placeholder="ghp_xxx... or glpat-xxx..."
+                required
+              />
+            </label>
+            <button className="button button-primary" type="submit">
+              Save Credential to LocalDB
+            </button>
+          </form>
+        </section>
+
+        <section className="panel settings-card">
+          <div className="settings-card-icon settings-card-icon-purple">
+            <Icon name="shield" size={18} />
           </div>
-          <div className="settings-data-row">
-            <span>Saved policy records</span>
-            <strong>{Object.keys(workspace.syncPolicies).length}</strong>
-          </div>
-          <div className="settings-card-footer">
-            <Icon name="warning" size={15} />
-            <span>
-              Local storage is not encrypted. Do not save credentials or sensitive data here.
-            </span>
-          </div>
+          <div className="eyebrow">STORED LOCAL CREDENTIALS</div>
+          <h2>Saved Tokens in LocalDB ({savedCredentials.length})</h2>
+          {savedCredentials.length === 0 ? (
+            <p className="text-muted">No provider credentials saved in IndexedDB yet.</p>
+          ) : (
+            <div className="cred-list" style={{ marginTop: '1rem' }}>
+              {savedCredentials.map((c) => (
+                <div key={`${c.provider}-${c.account}`} className="log-row">
+                  <span className="status-pill status-safe">{c.provider}</span>
+                  <strong>@{c.account}</strong>
+                  <span>{c.maskedToken}</span>
+                  <small className="text-muted">{c.authType}</small>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="panel settings-card">
@@ -78,56 +178,13 @@ export function Settings({ workspace, onReset }: SettingsProps) {
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <div className="settings-checks">
-            <span>
-              <Icon name="check" size={14} /> npm run check
-            </span>
-            <span>
-              <Icon name="check" size={14} /> npm run build
-            </span>
-          </div>
-        </section>
-
-        <section className="panel settings-card settings-security-card">
-          <div className="settings-card-icon settings-card-icon-purple">
-            <Icon name="shield" size={18} />
-          </div>
-          <div className="eyebrow">SECURITY BOUNDARIES</div>
-          <h2>Secrets belong in your runner</h2>
-          <p>
-            Provider tokens and Jules credentials are not requested, bundled, or persisted by this
-            frontend. Future integrations must use a user-owned secret manager.
-          </p>
-          <ul className="settings-boundary-list">
-            <li>No browser token storage</li>
-            <li>No managed backend or hosted database</li>
-            <li>No external calls from this frontend</li>
-            <li>Write operations require an approval gate</li>
-          </ul>
-        </section>
-
-        <section className="panel settings-card settings-runner-card">
-          <div className="settings-card-icon settings-card-icon-amber">
-            <Icon name="branch" size={18} />
-          </div>
-          <div className="eyebrow">USER-OWNED EXECUTION</div>
-          <h2>Runner setup is the next integration step</h2>
-          <p>
-            Sync schedules, CI logs, secret access, and Jules sessions must be implemented in a
-            workflow or runner you own. This app does not dispatch jobs yet.
-          </p>
-          <div className="runner-state-row">
-            <span className="status-dot status-dot-muted" />
-            <span>Not configured</span>
-            <span className="runner-state-suffix">No job can start from this page</span>
-          </div>
         </section>
       </div>
 
-      <section className="reset-local-panel">
+      <section className="reset-local-panel" style={{ marginTop: '2rem' }}>
         <div>
-          <strong>Reset local configuration</strong>
-          <p>Remove repository metadata and policy drafts stored in this browser.</p>
+          <strong>Reset local configuration &amp; IndexedDB</strong>
+          <p>Remove repository metadata, policy drafts, and stored credentials from this device.</p>
         </div>
         <button className="button button-danger-quiet" onClick={resetLocalData} type="button">
           Clear local data
