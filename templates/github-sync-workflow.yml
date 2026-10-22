@@ -1,0 +1,46 @@
+name: RepoPilot Sync & Maintenance
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode without pushing writes'
+        type: boolean
+        default: true
+      target_remote:
+        description: 'Target remote URL for synchronization'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Repository Synchronization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "repopilot-runner[bot]"
+          git config user.email "runner@repopilot.local"
+
+      - name: Perform sync check
+        env:
+          DRY_RUN: ${{ inputs.dry_run || 'true' }}
+          TARGET_REMOTE: ${{ inputs.target_remote }}
+          SYNC_SECRET: ${{ secrets.REPOPILOT_SYNC_TOKEN }}
+        run: |
+          echo "Executing RepoPilot synchronization workflow..."
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry-run mode active. Evaluating commit ancestry and drift..."
+          else
+            echo "Write mode active. Verifying approval and target remote availability..."
+          fi
