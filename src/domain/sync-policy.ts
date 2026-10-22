@@ -1,4 +1,4 @@
-import type { HistoryRelation, SyncPolicy } from './types';
+import type { HistoryRelation, PolicyRestriction, SyncPolicy } from './types';
 
 export interface SyncObservation {
   relation: HistoryRelation;
@@ -6,7 +6,8 @@ export interface SyncObservation {
   destinationCommit: string;
 }
 
-export type SyncDecision = 'blocked' | 'no-op' | 'dry-run' | 'approval-required' | 'planned-write';
+export type SyncDecision =
+  'blocked' | 'no-op' | 'dry-run' | 'approval-required' | 'planned-write' | 'policy-blocked';
 
 export interface SyncPlan {
   decision: SyncDecision;
@@ -44,10 +45,17 @@ export function validateSyncPolicy(policy: SyncPolicy): string[] {
   return errors;
 }
 
+function restrictionReason(restrictions: PolicyRestriction[]): string {
+  const kinds = restrictions.map((r) => r.kind).join(', ');
+  const messages = restrictions.map((r) => `${r.repository}: ${r.message}`.trim()).join(' | ');
+  return `Platform policy blocks writes before any Git operation runs (${kinds}). ${messages}`;
+}
+
 export function createSyncPlan(
   policy: SyncPolicy,
   observation: SyncObservation,
   approved = false,
+  restrictions: PolicyRestriction[] = [],
 ): SyncPlan {
   const base = {
     sourceCommit: observation.sourceCommit,
@@ -58,6 +66,12 @@ export function createSyncPlan(
 
   if (policyErrors.length > 0) {
     return { ...base, decision: 'blocked', reason: policyErrors.join(' ') };
+  }
+
+  // Platform restrictions outrank everything else: the runner must not even
+  // attempt a write that a provider has already proven it will reject.
+  if (restrictions.length > 0) {
+    return { ...base, decision: 'policy-blocked', reason: restrictionReason(restrictions) };
   }
 
   if (observation.relation === 'diverged') {

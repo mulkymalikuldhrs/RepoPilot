@@ -15,17 +15,17 @@ execution environment. “Planned” does not mean implemented or verified.
 
 ## Stage 2 — User-owned one-way synchronization
 
-- Implement a runner CLI or workflow template with explicit permissions and secret names.
-- Fetch refs, compare ancestry, generate a dry-run report, and test with temporary local repositories.
-- Add bounded retry, idempotency keys, loop prevention, exclusions, and inspectable failure output.
-- Require an explicit target and approval before remote writes; never force-push divergent history.
+- [x] Implement a runner CLI or workflow template with explicit permissions and secret names. (`npm run runner`, env-only credentials, redacted output)
+- [x] Fetch refs, compare ancestry, generate a dry-run report, and test with temporary local repositories. (`plan --auto` uses ls-remote + merge-base ancestry in a temp bare repo)
+- [x] Add bounded retry, idempotency keys, loop prevention, exclusions, and inspectable failure output. (3-attempt backoff, per-target decision ledger, `--exclusions`, `.applied.json` results)
+- [x] Require an explicit target and approval before remote writes; never force-push divergent history. (`apply --approve` + `approval-required` gate; branch mode pushes without force; diverged/unknown never written)
 
 ## Stage 3 — Provider adapters
 
-- Implement one provider at a time, beginning with GitHub, then GitLab and Codeberg.
-- Verify official API and Git transport behavior, token scopes, rate limits, and CORS constraints.
-- Support multiple accounts without merging credentials or mirroring private repositories by default.
-- Add user-controlled workflow paths for providers not directly supported by a coding agent.
+- [x] Implement one provider at a time, beginning with GitHub, then GitLab and Codeberg. (All three shipped in 0.2.0 with injectable-fetch tests)
+- [x] Verify official API and Git transport behavior, token scopes, rate limits, and CORS constraints. (Runner-side Node execution avoids CORS; GitLab anti-abuse pacing configurable)
+- [x] Support multiple accounts without merging credentials or mirroring private repositories by default. (GitHub multi-PAT, per-token account resolution, visibility metadata preserved)
+- [ ] Add user-controlled workflow paths for providers not directly supported by a coding agent.
 
 ## Stage 4 — Jules and repair orchestration
 

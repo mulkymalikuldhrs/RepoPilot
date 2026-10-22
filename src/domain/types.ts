@@ -12,7 +12,26 @@ export interface RepositoryConfig {
   remoteUrl: string;
   defaultBranch: string;
   createdAt: string;
-  verification: 'unverified';
+  verification: 'unverified' | 'verified';
+  /** Runner-verified metadata (optional; never required by the UI). */
+  archived?: boolean;
+  visibility?: 'public' | 'private';
+  pushedAt?: string;
+}
+
+/**
+ * A platform-level restriction that makes a repository impossible or unsafe
+ * to write to, regardless of policy. Discovered by the runner from real
+ * provider responses/push failures, never guessed by the UI.
+ */
+export type PolicyRestrictionKind =
+  'github-ruleset' | 'pre-receive-hook' | 'push-rules' | 'archived' | 'auth-denied' | 'unknown';
+
+export interface PolicyRestriction {
+  kind: PolicyRestrictionKind;
+  platform: ProviderId;
+  repository: string;
+  message: string;
 }
 
 export interface SyncPolicy {

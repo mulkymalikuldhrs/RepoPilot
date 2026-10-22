@@ -1,6 +1,6 @@
 {
   "name": "repopilot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "A frontend-first control plane for user-owned Git synchronization and repair workflows.",
@@ -14,7 +14,9 @@
     "security:bundle": "node scripts/check-bundle-secrets.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"docs/**/*.md\" README.md \"*.json\" \"*.js\" \".github/**/*.yml\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"docs/**/*.md\" README.md \"*.json\" \"*.js\" \".github/**/*.yml\"",
-    "check": "npm run lint && npm run test && npm run format:check"
+    "check": "npm run lint && npm run test && npm run format:check",
+    "runner": "tsx src/runner/cli.ts",
+    "runner:help": "tsx src/runner/cli.ts --help"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.2.0",
@@ -29,6 +31,7 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.72.0",
     "vitest": "^5.0.5"
