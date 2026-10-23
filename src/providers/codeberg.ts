@@ -30,14 +30,15 @@ interface GiteaRepoPayload {
 
 function mapRepo(payload: GiteaRepoPayload): ProviderRepoSnapshot {
   const fullName = payload.full_name;
-  const account = str(payload.owner, 'login') || fullName.split('/')[0] || fullName;
+  const rec = asRecord(payload);
+  const account = str(asRecord(payload.owner), 'login') || fullName.split('/')[0] || fullName;
   return {
     account,
     fullName,
     remoteUrl: `https://codeberg.org/${fullName}.git`,
     defaultBranch: payload.default_branch || 'main',
     visibility: payload.private ? 'private' : 'public',
-    archived: bool(payload, 'archived'),
+    archived: bool(rec, 'archived'),
     pushedAt: payload.updated_at,
     createdAt: payload.created_at,
   };
@@ -71,7 +72,7 @@ export class CodebergAdapter implements GitProviderAdapter {
         this.fetchImpl,
         (page) => `${API_ROOT}/user/repos?limit=50&page=${page}`,
         headers,
-        asArray,
+        (payload) => asArray(payload) as unknown as GiteaRepoPayload[],
       );
       for (const repo of repos) {
         byFullName.set(

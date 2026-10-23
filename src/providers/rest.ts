@@ -34,6 +34,7 @@ export function snapshotToRepositoryConfig(
     defaultBranch: snapshot.defaultBranch,
     createdAt: snapshot.createdAt,
     verification: 'verified',
+    fullName: snapshot.fullName,
     archived: snapshot.archived,
     visibility: snapshot.visibility,
     pushedAt: snapshot.pushedAt,
