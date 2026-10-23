@@ -14,6 +14,7 @@ export interface RepositoryConfig {
   createdAt: string;
   verification: 'unverified' | 'verified';
   /** Runner-verified metadata (optional; never required by the UI). */
+  fullName?: string;
   archived?: boolean;
   visibility?: 'public' | 'private';
   pushedAt?: string;
