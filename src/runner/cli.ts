@@ -27,7 +27,9 @@ import { detectRelation } from './relation';
 import { metadataRestrictions, restrictionFromRejection } from './rejection';
 
 interface RunnerRepo extends RepositoryConfig {
+  fullName: string;
   head?: string;
+  restrictions?: PolicyRestriction[];
 }
 
 interface PlanTarget {
@@ -154,7 +156,12 @@ async function collectRepos(
     try {
       const list = await adapter.listRepositories();
       console.error(`[inventory] ${providerId}: ${list.length} repositories`);
-      repos.push(...list);
+      const runnerRepos: RunnerRepo[] = list.map((r) => ({
+        ...r,
+        fullName: `${r.account}/${r.name}`,
+        restrictions: [],
+      }));
+      repos.push(...runnerRepos);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push(`${providerId}: ${message}`);
@@ -388,22 +395,26 @@ async function cmdApply(args: Record<string, string | boolean>): Promise<void> {
       const sourceRepo: RunnerRepo = {
         id: `source:${entry.source.fullName.toLowerCase()}`,
         name: entry.key,
+        fullName: entry.source.fullName,
         provider: entry.source.platform,
         account: entry.source.account,
         remoteUrl: entry.source.remoteUrl,
         defaultBranch: entry.branch,
         createdAt: '',
         verification: 'verified',
+        restrictions: [],
       };
       const targetRepo: RunnerRepo = {
         id: `target:${target.fullName.toLowerCase()}`,
         name: entry.key,
+        fullName: target.fullName,
         provider: target.platform,
         account: target.account,
         remoteUrl: target.remoteUrl,
         defaultBranch: entry.branch,
         createdAt: '',
         verification: 'verified',
+        restrictions: target.restrictions ?? [],
       };
 
       const outcome = await pushWithRetry(
@@ -490,10 +501,11 @@ async function pushWithRetry(
       lastStderr = pushResult.stderr;
       const restriction = restrictionFromRejection(target.provider, target.fullName, lastStderr);
       if (restriction) {
+        if (!target.restrictions) target.restrictions = [];
         target.restrictions.push(restriction);
         return {
           outcome: 'policy-blocked',
-          message: redact(`${restriction.kind}: ${restriction.guidance}`, tokens),
+          message: redact(`${restriction.kind}: ${restriction.message}`, tokens),
         };
       }
       if (attempt < MAX_ATTEMPTS) {

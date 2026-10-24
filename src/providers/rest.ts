@@ -63,7 +63,7 @@ export async function paginate<T>(
   fetchImpl: FetchLike,
   buildUrl: (page: number) => string,
   headers: Record<string, string>,
-  extract: (payload: unknown) => T[],
+  extract: (payload: unknown) => unknown[],
   maxPages = 20,
 ): Promise<T[]> {
   const out: T[] = [];
@@ -80,7 +80,7 @@ export async function paginate<T>(
       if (error instanceof Error && error.message.includes(' 404 ')) break;
       throw error;
     }
-    const items = extract(payload);
+    const items = extract(payload) as T[];
     out.push(...items);
     if (items.length === 0) break;
   }
