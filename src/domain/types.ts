@@ -7,6 +7,7 @@ export type HistoryRelation = 'in-sync' | 'fast-forward' | 'diverged' | 'unknown
 export interface RepositoryConfig {
   id: string;
   name: string;
+  fullName?: string;
   provider: ProviderId;
   account: string;
   remoteUrl: string;

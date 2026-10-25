@@ -28,6 +28,7 @@ export function snapshotToRepositoryConfig(
   return {
     id: `${providerId}:${snapshot.fullName.toLowerCase()}`,
     name: snapshot.fullName.split('/')[1] ?? snapshot.fullName,
+    fullName: snapshot.fullName,
     provider: providerId,
     account: snapshot.account,
     remoteUrl: snapshot.remoteUrl,
