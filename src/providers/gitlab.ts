@@ -105,7 +105,7 @@ export class GitLabAdapter implements GitProviderAdapter {
         (url, init) => fetchWithRetry(this.fetchImpl, url, init?.headers ?? {}),
         (page) => `${API_ROOT}/users/${uid}/projects?per_page=100&page=${page}`,
         headers,
-        asArray,
+        (payload) => asArray(payload) as unknown as GitLabProjectPayload[],
       );
       for (const project of projects) {
         byPath.set(
