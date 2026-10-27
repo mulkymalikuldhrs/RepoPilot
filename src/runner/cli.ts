@@ -28,6 +28,8 @@ import { metadataRestrictions, restrictionFromRejection } from './rejection';
 
 interface RunnerRepo extends RepositoryConfig {
   head?: string;
+  fullName: string;
+  restrictions?: PolicyRestriction[];
 }
 
 interface PlanTarget {
@@ -154,7 +156,12 @@ async function collectRepos(
     try {
       const list = await adapter.listRepositories();
       console.error(`[inventory] ${providerId}: ${list.length} repositories`);
-      repos.push(...list);
+      repos.push(
+        ...list.map((r) => ({
+          ...r,
+          fullName: r.fullName ?? `${r.account}/${r.name}`,
+        })),
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push(`${providerId}: ${message}`);
@@ -178,7 +185,9 @@ function pickSource(members: RunnerRepo[]): RunnerRepo {
     const at = a.pushedAt ?? '';
     const bt = b.pushedAt ?? '';
     if (at !== bt) return at < bt ? 1 : -1;
-    return a.fullName.localeCompare(b.fullName);
+    const af = a.fullName ?? `${a.account}/${a.name}`;
+    const bf = b.fullName ?? `${b.account}/${b.name}`;
+    return af.localeCompare(bf);
   })[0];
 }
 
@@ -214,7 +223,7 @@ async function cmdPlan(args: Record<string, string | boolean>): Promise<void> {
   const restrictions = metadataRestrictions(
     repos.map((r) => ({
       provider: r.provider,
-      fullName: r.fullName,
+      fullName: r.fullName ?? `${r.account}/${r.name}`,
       archived: Boolean(r.archived),
     })),
   );
@@ -388,16 +397,19 @@ async function cmdApply(args: Record<string, string | boolean>): Promise<void> {
       const sourceRepo: RunnerRepo = {
         id: `source:${entry.source.fullName.toLowerCase()}`,
         name: entry.key,
+        fullName: entry.source.fullName,
         provider: entry.source.platform,
         account: entry.source.account,
         remoteUrl: entry.source.remoteUrl,
         defaultBranch: entry.branch,
         createdAt: '',
         verification: 'verified',
+        restrictions: target.restrictions,
       };
       const targetRepo: RunnerRepo = {
         id: `target:${target.fullName.toLowerCase()}`,
         name: entry.key,
+        fullName: target.fullName,
         provider: target.platform,
         account: target.account,
         remoteUrl: target.remoteUrl,
@@ -490,10 +502,11 @@ async function pushWithRetry(
       lastStderr = pushResult.stderr;
       const restriction = restrictionFromRejection(target.provider, target.fullName, lastStderr);
       if (restriction) {
+        if (!target.restrictions) target.restrictions = [];
         target.restrictions.push(restriction);
         return {
           outcome: 'policy-blocked',
-          message: redact(`${restriction.kind}: ${restriction.guidance}`, tokens),
+          message: redact(`${restriction.kind}: ${restriction.message}`, tokens),
         };
       }
       if (attempt < MAX_ATTEMPTS) {

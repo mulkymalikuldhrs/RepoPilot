@@ -28,6 +28,7 @@ export function snapshotToRepositoryConfig(
   return {
     id: `${providerId}:${snapshot.fullName.toLowerCase()}`,
     name: snapshot.fullName.split('/')[1] ?? snapshot.fullName,
+    fullName: snapshot.fullName,
     provider: providerId,
     account: snapshot.account,
     remoteUrl: snapshot.remoteUrl,
@@ -87,8 +88,8 @@ export async function paginate<T>(
   return out;
 }
 
-export function asArray(payload: unknown): unknown[] {
-  return Array.isArray(payload) ? payload : [];
+export function asArray<T = unknown>(payload: unknown): T[] {
+  return Array.isArray(payload) ? (payload as T[]) : [];
 }
 
 export function asRecord(payload: unknown): Record<string, unknown> {
