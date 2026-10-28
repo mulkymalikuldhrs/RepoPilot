@@ -37,6 +37,7 @@ export function snapshotToRepositoryConfig(
     archived: snapshot.archived,
     visibility: snapshot.visibility,
     pushedAt: snapshot.pushedAt,
+    fullName: snapshot.fullName,
   };
 }
 

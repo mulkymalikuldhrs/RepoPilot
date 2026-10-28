@@ -87,7 +87,7 @@ export class GitHubAdapter implements GitProviderAdapter {
         this.fetchImpl,
         (page) => `${API_ROOT}/user/repos?per_page=100&sort=updated&page=${page}`,
         headers,
-        asArray,
+        (payload) => asArray(payload) as unknown as GitHubRepoPayload[],
       );
       for (const repo of personal) {
         byFullName.set(repo.full_name.toLowerCase(), toConfig(mapRepo(repo, login)));
@@ -102,7 +102,7 @@ export class GitHubAdapter implements GitProviderAdapter {
           this.fetchImpl,
           (page) => `${API_ROOT}/orgs/${orgLogin}/repos?per_page=100&page=${page}`,
           headers,
-          asArray,
+          (payload) => asArray(payload) as unknown as GitHubRepoPayload[],
         );
         for (const repo of orgRepos) {
           byFullName.set(repo.full_name.toLowerCase(), toConfig(mapRepo(repo, orgLogin)));
