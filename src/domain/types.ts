@@ -17,6 +17,7 @@ export interface RepositoryConfig {
   archived?: boolean;
   visibility?: 'public' | 'private';
   pushedAt?: string;
+  fullName?: string;
 }
 
 /**
