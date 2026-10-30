@@ -28,7 +28,9 @@ function splitList(raw: string | undefined): string[] {
 }
 
 export function loadCredentials(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = (
+    globalThis as unknown as { process?: { env: Record<string, string | undefined> } }
+  ).process?.env ?? {},
 ): RunnerCredentials {
   return {
     github: splitList(env[CREDENTIAL_ENV_VARS.github]),
