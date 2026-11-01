@@ -3,7 +3,6 @@ import type { GitProviderAdapter } from './types';
 import {
   asArray,
   asRecord,
-  bool,
   paginate,
   snapshotToRepositoryConfig,
   str,
@@ -30,14 +29,15 @@ interface GiteaRepoPayload {
 
 function mapRepo(payload: GiteaRepoPayload): ProviderRepoSnapshot {
   const fullName = payload.full_name;
-  const account = str(payload.owner, 'login') || fullName.split('/')[0] || fullName;
+  const ownerRecord = asRecord(payload.owner);
+  const account = str(ownerRecord, 'login') || fullName.split('/')[0] || fullName;
   return {
     account,
     fullName,
     remoteUrl: `https://codeberg.org/${fullName}.git`,
     defaultBranch: payload.default_branch || 'main',
     visibility: payload.private ? 'private' : 'public',
-    archived: bool(payload, 'archived'),
+    archived: Boolean(payload.archived),
     pushedAt: payload.updated_at,
     createdAt: payload.created_at,
   };

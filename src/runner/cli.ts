@@ -27,6 +27,8 @@ import { detectRelation } from './relation';
 import { metadataRestrictions, restrictionFromRejection } from './rejection';
 
 interface RunnerRepo extends RepositoryConfig {
+  fullName: string;
+  restrictions?: PolicyRestriction[];
   head?: string;
 }
 
@@ -154,7 +156,11 @@ async function collectRepos(
     try {
       const list = await adapter.listRepositories();
       console.error(`[inventory] ${providerId}: ${list.length} repositories`);
-      repos.push(...list);
+      const mapped = list.map((r) => ({
+        ...r,
+        fullName: r.account ? `${r.account}/${r.name}` : r.name,
+      }));
+      repos.push(...mapped);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push(`${providerId}: ${message}`);
@@ -387,6 +393,7 @@ async function cmdApply(args: Record<string, string | boolean>): Promise<void> {
 
       const sourceRepo: RunnerRepo = {
         id: `source:${entry.source.fullName.toLowerCase()}`,
+        fullName: entry.source.fullName,
         name: entry.key,
         provider: entry.source.platform,
         account: entry.source.account,
@@ -397,6 +404,7 @@ async function cmdApply(args: Record<string, string | boolean>): Promise<void> {
       };
       const targetRepo: RunnerRepo = {
         id: `target:${target.fullName.toLowerCase()}`,
+        fullName: target.fullName,
         name: entry.key,
         provider: target.platform,
         account: target.account,
@@ -490,10 +498,11 @@ async function pushWithRetry(
       lastStderr = pushResult.stderr;
       const restriction = restrictionFromRejection(target.provider, target.fullName, lastStderr);
       if (restriction) {
+        if (!target.restrictions) target.restrictions = [];
         target.restrictions.push(restriction);
         return {
           outcome: 'policy-blocked',
-          message: redact(`${restriction.kind}: ${restriction.guidance}`, tokens),
+          message: redact(`${restriction.kind}: ${restriction.message}`, tokens),
         };
       }
       if (attempt < MAX_ATTEMPTS) {
