@@ -87,8 +87,8 @@ export async function paginate<T>(
   return out;
 }
 
-export function asArray(payload: unknown): unknown[] {
-  return Array.isArray(payload) ? payload : [];
+export function asArray<T = unknown>(payload: unknown): T[] {
+  return Array.isArray(payload) ? (payload as T[]) : [];
 }
 
 export function asRecord(payload: unknown): Record<string, unknown> {
